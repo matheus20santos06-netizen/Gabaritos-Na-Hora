@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hub de Gabaritos & Gambiarras - Marcenaria Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="flex flex-col h-screen select-none bg-slate-900 text-slate-100">
+
+    <!-- CABEÇALHO -->
+    <header class="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shadow-md z-10">
+        <h1 class="text-sm font-bold truncate"><i class="fa-solid fa-hammer text-amber-500 mr-1.5"></i> Gambiarras & Gabaritos</h1>
+        <div class="text-[11px] bg-slate-900 px-3 py-1 rounded border border-slate-700 text-slate-300">
+            Confiabilidade Média: <span id="avgSuccess" class="font-bold text-emerald-400">0%</span>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+
+        <!-- BARRA DE PESQUISA E FILTROS -->
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 shadow-lg space-y-2">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                <input type="text" id="searchInput" oninput="filterItems()" placeholder="Pesquisar problema, ferramenta ou uso (ex: corte, esquadro)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+        </section>
+
+        <!-- LISTA DE IDEIAS PUXADAS DO DADOS.TXT -->
+        <section class="space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1"><i class="fa-solid fa-list-check mr-1 text-blue-400"></i> Soluções & Ideias Carregadas</h2>
+            <div id="itemsContainer" class="space-y-3 pb-6">
+                <div class="text-center py-8 text-slate-500 text-xs">Carregando dados.txt...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SCRIPT DE CARREGAMENTO DO TXT E FILTRAGEM -->
+    <script>
+        let rawDataList = [];
+
+        async function loadData() {
+            try {
+                let response = await fetch('dados.txt');
+                let text = await response.text();
+                parseData(text);
+            } catch (error) {
+                console.error("Erro ao carregar dados.txt:", error);
+                document.getElementById('itemsContainer').innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao carregar o arquivo dados.txt. Certifique-se de que ele está na mesma pasta.</div>`;
+            }
+        }
+
+        function parseData(text) {
+            let lines = text.split('\n');
+            rawDataList = [];
+
+            lines.forEach((line, index) => {
+                if (line.trim() === '') return;
+                let parts = line.split('|');
+                if (parts.length >= 5) {
+                    rawDataList.push({
+                        id: index,
+                        title: parts[0].trim(),
+                        url: parts[1].trim(),
+                        success: parseInt(parts[2].trim()),
+                        status: parts[3].trim(),
+                        category: parts[4].trim()
+                    });
+                }
+            });
+
+            renderItems(rawDataList);
+            updateMetrics(rawDataList);
+        }
+
+        function extractYouTubeId(url) {
+            let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            let match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function filterItems() {
+            let query = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = rawDataList.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.category.toLowerCase().includes(query)
+            );
+            renderItems(filtered);
+        }
+
+        function renderItems(items) {
+            let container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Nenhum resultado encontrado para sua busca.</div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                let videoId = extractYouTubeId(item.url);
+                let successColor = item.success >= 90 ? 'text-emerald-400 bg-emerald-950/60' : item.success >= 80 ? 'text-blue-400 bg-blue-950/60' : 'text-amber-400 bg-amber-950/60';
+                
+                let card = document.createElement('div');
+                card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-amber-400 uppercase font-bold tracking-wider">${item.category}</span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">${item.title}</h3>
+                        </div>
+                        <span class="${successColor} px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: ${item.success}%</span>
+                    </div>
+                    ${videoId ? `
+                    <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700">
+                        <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>` : '<p class="text-red-400 text-[10px]">Link inválido</p>'}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateMetrics(items) {
+            if (items.length === 0) {
+                document.getElementById('avgSuccess').innerText = '0%';
+                return;
+            }
+            let sum = items.reduce((acc, curr) => acc + curr.success, 0);
+            let avg = Math.round(sum / items.length);
+            document.getElementById('avgSuccess').innerText = avg + '%';
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
