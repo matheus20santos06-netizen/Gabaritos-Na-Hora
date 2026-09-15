@@ -2,148 +2,141 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guia do Marceneiro - Lojas, Materiais e Rotas</title>
-    <!-- Importando o Leaflet (Biblioteca de Mapas Gratuita e sem chave) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hub de Gabaritos & Gambiarras - Marcenaria Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
-        
-        #sidebar {
-            width: 450px;
-            background: #f8f9fa;
-            padding: 20px;
-            overflow-y: auto;
-            border-right: 1px solid #ddd;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        #map { flex-grow: 1; height: 100%; }
-
-        h1 { font-size: 1.2rem; color: #333; margin-bottom: 5px; }
-        .store-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .store-card:hover { transform: translateY(-2px); }
-        .store-title { font-weight: bold; color: #b22222; margin-bottom: 5px; }
-        
-        .btn-route {
-            display: inline-block;
-            margin-top: 10px;
-            background: #1a73e8;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
-        .btn-route:hover { background: #1557b0; }
-
-        .price-list {
-            font-size: 0.85rem;
-            color: #555;
-            margin-top: 8px;
-            border-top: 1px solid #eee;
-            padding-top: 8px;
-        }
-        .price-item { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .badge { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body>
+<body class="flex flex-col h-screen select-none bg-slate-900 text-slate-100">
 
-    <div id="sidebar">
-        <div>
-            <h1>Guia do Marceneiro 🪵</h1>
-            <p style="font-size: 0.85rem; color: #666;">Encontre MDF, madeiras, máquinas e ferramentas com comparativo de preços e rotas por GPS.</p>
+    <!-- CABEÇALHO -->
+    <header class="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shadow-md z-10">
+        <h1 class="text-sm font-bold truncate"><i class="fa-solid fa-hammer text-amber-500 mr-1.5"></i> Gambiarras & Gabaritos</h1>
+        <div class="text-[11px] bg-slate-900 px-3 py-1 rounded border border-slate-700 text-slate-300">
+            Confiabilidade Média: <span id="avgSuccess" class="font-bold text-emerald-400">0%</span>
         </div>
-        
-        <div id="stores-list"></div>
-    </div>
+    </header>
 
-    <div id="map"></div>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
 
-    <!-- Script do Leaflet -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- BARRA DE PESQUISA E FILTROS -->
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 shadow-lg space-y-2">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                <input type="text" id="searchInput" oninput="filterItems()" placeholder="Pesquisar problema, ferramenta ou uso (ex: corte, esquadro)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            </div>
+        </section>
 
+        <!-- LISTA DE IDEIAS PUXADAS DO DADOS.TXT -->
+        <section class="space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1"><i class="fa-solid fa-list-check mr-1 text-blue-400"></i> Soluções & Ideias Carregadas</h2>
+            <div id="itemsContainer" class="space-y-3 pb-6">
+                <div class="text-center py-8 text-slate-500 text-xs">Carregando dados.txt...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SCRIPT DE CARREGAMENTO DO TXT E FILTRAGEM -->
     <script>
-        // Dados das Lojas, Materiais, Máquinas e Preços Padrão / Porcentagens
-        const lojasData = [
-            {
-                nome: "Madeireira e MDF Express",
-                lat: -23.550520, lng: -46.633308,
-                tipo: "MDF e Chapas",
-                itens: [
-                    { produto: "Chapa MDF Branco 15mm", preco: "R$ 180,00", variacao: "+5% vs. média" },
-                    { produto: "Chapa MDF Amadeirado 18mm", preco: "R$ 270,00", variacao: "Preço padrão" }
-                ]
-            },
-            {
-                nome: "Casa do Marceneiro - Máquinas & Ferragens",
-                lat: -23.561414, lng: -46.655881,
-                tipo: "Ferramentas e Máquinas (Novas/Antigas)",
-                itens: [
-                    { produto: "Dobradiça Caneco 35mm (Cx c/100)", preco: "R$ 85,00", variacao: "-2% vs. média" },
-                    { produto: "Serra Circular de Bancada (Revisada)", preco: "R$ 1.200,00", variacao: "Abaixo da média" }
-                ]
+        let rawDataList = [];
+
+        async function loadData() {
+            try {
+                let response = await fetch('dados.txt');
+                let text = await response.text();
+                parseData(text);
+            } catch (error) {
+                console.error("Erro ao carregar dados.txt:", error);
+                document.getElementById('itemsContainer').innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao carregar o arquivo dados.txt. Certifique-se de que ele está na mesma pasta.</div>`;
             }
-        ];
+        }
 
-        // Inicializa o Mapa na coordenada central (Ex: São Paulo)
-        const map = L.map('map').setView([-23.550520, -46.633308], 13);
+        function parseData(text) {
+            let lines = text.split('\n');
+            rawDataList = [];
 
-        // Adiciona a camada de Satélite (Esri World Imagery - Gratuita e sem chave)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-        }).addTo(map);
-
-        const listContainer = document.getElementById("stores-list");
-
-        lojasData.forEach((loja) => {
-            // Adiciona o marcador no mapa de satélite
-            const marker = L.marker([loja.lat, loja.lng]).addTo(map);
-            marker.bindPopup(`<b>${loja.nome}</b><br>${loja.tipo}`);
-
-            // Criação do card na barra lateral
-            const card = document.createElement("div");
-            card.className = "store-card";
-            
-            let itensHtml = loja.itens.map(i => `
-                <div class="price-item">
-                    <span>${i.produto}</span>
-                    <strong>${i.preco} <small class="badge">${i.variacao}</small></strong>
-                </div>
-            `).join("");
-
-            // Link universal que abre o app de GPS nativo do celular (Google Maps ou Apple Maps) traçando a rota
-            const gpsRouteUrl = `https://www.google.com/maps/dir/?api=1&destination=${loja.lat},${loja.lng}`;
-
-            card.innerHTML = `
-                <div class="store-title">${loja.nome}</div>
-                <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Categoria: ${loja.tipo}</div>
-                <div class="price-list">
-                    ${itensHtml}
-                </div>
-                <a href="${gpsRouteUrl}" target="_blank" class="btn-route">🧭 Ir com GPS (Rota Curta/Alternativa)</a>
-            `;
-
-            // Ao clicar no card, o mapa de satélite aproxima na loja
-            card.addEventListener("click", () => {
-                map.setView([loja.lat, loja.lng], 17);
-                marker.openPopup();
+            lines.forEach((line, index) => {
+                if (line.trim() === '') return;
+                let parts = line.split('|');
+                if (parts.length >= 5) {
+                    rawDataList.push({
+                        id: index,
+                        title: parts[0].trim(),
+                        url: parts[1].trim(),
+                        success: parseInt(parts[2].trim()),
+                        status: parts[3].trim(),
+                        category: parts[4].trim()
+                    });
+                }
             });
 
-            listContainer.appendChild(card);
-        });
+            renderItems(rawDataList);
+            updateMetrics(rawDataList);
+        }
+
+        function extractYouTubeId(url) {
+            let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            let match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function filterItems() {
+            let query = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = rawDataList.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.category.toLowerCase().includes(query)
+            );
+            renderItems(filtered);
+        }
+
+        function renderItems(items) {
+            let container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Nenhum resultado encontrado para sua busca.</div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                let videoId = extractYouTubeId(item.url);
+                let successColor = item.success >= 90 ? 'text-emerald-400 bg-emerald-950/60' : item.success >= 80 ? 'text-blue-400 bg-blue-950/60' : 'text-amber-400 bg-amber-950/60';
+                
+                let card = document.createElement('div');
+                card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-amber-400 uppercase font-bold tracking-wider">${item.category}</span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">${item.title}</h3>
+                        </div>
+                        <span class="${successColor} px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: ${item.success}%</span>
+                    </div>
+                    ${videoId ? `
+                    <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700">
+                        <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>` : '<p class="text-red-400 text-[10px]">Link inválido</p>'}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateMetrics(items) {
+            if (items.length === 0) {
+                document.getElementById('avgSuccess').innerText = '0%';
+                return;
+            }
+            let sum = items.reduce((acc, curr) => acc + curr.success, 0);
+            let avg = Math.round(sum / items.length);
+            document.getElementById('avgSuccess').innerText = avg + '%';
+        }
+
+        loadData();
     </script>
 </body>
 </html>
