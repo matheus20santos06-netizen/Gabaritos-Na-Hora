@@ -22,14 +22,14 @@
     </header>
 
     <!-- CONTEÚDO PRINCIPAL -->
-    <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+    <main class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
 
-        <!-- BARRA DE PESQUISA -->
+        <!-- BARRA DE PESQUISA YOUTUBE -->
         <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 shadow-lg space-y-2">
             <form onsubmit="handleSearch(event)" class="flex gap-2">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
-                    <input type="text" id="searchInput" placeholder="Pesquisar gambiarra ou gabarito no YouTube (ex: gabarito cavilha)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" id="searchInput" placeholder="Pesquisar gambiarra ou gabarito no YouTube (ex: esquadro, cavilha)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
                 </div>
                 <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-lg text-xs transition-colors">
                     Buscar
@@ -37,18 +37,83 @@
             </form>
         </section>
 
-        <!-- LISTA DE VÍDEOS -->
+        <!-- SEÇÃO: INSTAGRAM & TIKTOK (DESTAQUES EMBED) -->
         <section class="space-y-3">
-            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1"><i class="fa-brands fa-youtube mr-1 text-red-500"></i> Resultados do YouTube</h2>
-            <div id="itemsContainer" class="space-y-3 pb-6">
-                <div class="text-center py-8 text-slate-500 text-xs">Digite um termo acima para buscar tutoriais.</div>
+            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
+                <i class="fa-brands fa-share-nodes mr-1 text-pink-500"></i> Destaques Redes Sociais
+            </h2>
+            <div id="socialContainer" class="space-y-4">
+                
+                <!-- CARD DO REEL 90° (INSTAGRAM) -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-pink-400 uppercase font-bold tracking-wider">
+                                <i class="fa-brands fa-instagram mr-1"></i>Instagram Reel
+                            </span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">Gabarito para Junção de Peças em 90°</h3>
+                        </div>
+                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 95%</span>
+                    </div>
+
+                    <!-- PLAYER REEL EMBED -->
+                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
+                        <blockquote 
+                            class="instagram-media" 
+                            data-instgrm-permalink="https://www.instagram.com/reel/DYS7QiVvwql/" 
+                            data-instgrm-version="14"
+                            style="background:#000; border:0; margin: 1px; max-width:540px; width:calc(100% - 2px);">
+                        </blockquote>
+                    </div>
+                </div>
+
+                <!-- CARD DO TIKTOK LITE -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-cyan-400 uppercase font-bold tracking-wider">
+                                <i class="fa-brands fa-tiktok mr-1"></i>TikTok Lite
+                            </span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">Ideia de Gabarito & Dica de Marcenaria</h3>
+                        </div>
+                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 92%</span>
+                    </div>
+
+                    <!-- PLAYER TIKTOK EMBED -->
+                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
+                        <blockquote 
+                            class="tiktok-embed" 
+                            cite="https://vm.tiktok.com/ZSqtXBrPd/" 
+                            data-video-id="" 
+                            style="max-width: 605px;min-width: 325px;">
+                            <section>
+                                <a target="_blank" title="TikTok" href="https://vm.tiktok.com/ZSqtXBrPd/">Ver no TikTok Lite <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+                            </section>
+                        </blockquote>
+                    </div>
+                </div>
+
             </div>
         </section>
+
+        <!-- SEÇÃO: RESULTADOS DA API DO YOUTUBE -->
+        <section class="space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
+                <i class="fa-brands fa-youtube mr-1 text-red-500"></i> Resultados do YouTube
+            </h2>
+            <div id="itemsContainer" class="space-y-3 pb-6">
+                <div class="text-center py-8 text-slate-500 text-xs">Carregando tutoriais...</div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- SCRIPT DA API DO YOUTUBE -->
+    <!-- SCRIPTS EXTERNOS PARA EMBEDS (INSTAGRAM E TIKTOK) -->
+    <script async src="//www.instagram.com/embed.js"></script>
+    <script async src="https://www.tiktok.com/embed.js"></script>
+
+    <!-- SCRIPT DA API DO YOUTUBE E MÉTRICAS -->
     <script>
-        // Chave da YouTube Data API v3 inserida
         const YOUTUBE_API_KEY = 'AIzaSyCfGF8gIB2YfbdauGY-CwC8cFMaIZOcuHw';
 
         let currentResults = [];
@@ -63,11 +128,10 @@
 
         async function searchYouTube(query) {
             let container = document.getElementById('itemsContainer');
-
             container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Buscando vídeos no YouTube...</div>`;
 
             try {
-                let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
+                let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=6&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
                 let searchResponse = await fetch(searchUrl);
                 let searchData = await searchResponse.json();
 
@@ -104,7 +168,7 @@
 
             } catch (error) {
                 console.error("Erro na API do YouTube:", error);
-                container.innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao consultar a API do YouTube. Verifique se a cota diária foi atingida.</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao consultar a API do YouTube.</div>`;
             }
         }
 
@@ -134,16 +198,17 @@
         }
 
         function updateMetrics(items) {
-            if (items.length === 0) {
-                document.getElementById('avgSuccess').innerText = '0%';
-                return;
-            }
-            let sum = items.reduce((acc, curr) => acc + curr.success, 0);
-            let avg = Math.round(sum / items.length);
+            // Inclui as percentagens do Instagram (95%) e do TikTok (92%)
+            let staticItemsSuccess = [95, 92]; 
+            let allSuccesses = [...staticItemsSuccess, ...items.map(i => i.success)];
+            
+            let sum = allSuccesses.reduce((acc, curr) => acc + curr, 0);
+            let avg = Math.round(sum / allSuccesses.length);
             document.getElementById('avgSuccess').innerText = avg + '%';
         }
 
-        searchYouTube('gabarito marcenaria simples');
+        // Busca automática inicial no YouTube
+        searchYouTube('gabarito 90 graus marcenaria');
     </script>
 </body>
 </html>
