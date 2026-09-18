@@ -24,87 +24,95 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
 
-        <!-- BARRA DE PESQUISA E FILTROS -->
+        <!-- BARRA DE PESQUISA -->
         <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 shadow-lg space-y-2">
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
-                <input type="text" id="searchInput" oninput="filterItems()" placeholder="Pesquisar problema, ferramenta ou uso (ex: corte, esquadro)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
-            </div>
+            <form onsubmit="handleSearch(event)" class="flex gap-2">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" placeholder="Pesquisar gambiarra ou gabarito no YouTube (ex: gabarito cavilha)..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-lg text-xs transition-colors">
+                    Buscar
+                </button>
+            </form>
         </section>
 
-        <!-- LISTA DE IDEIAS PUXADAS DO DADOS.TXT -->
+        <!-- LISTA DE VÍDEOS -->
         <section class="space-y-3">
-            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1"><i class="fa-solid fa-list-check mr-1 text-blue-400"></i> Soluções & Ideias Carregadas</h2>
+            <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1"><i class="fa-brands fa-youtube mr-1 text-red-500"></i> Resultados do YouTube</h2>
             <div id="itemsContainer" class="space-y-3 pb-6">
-                <div class="text-center py-8 text-slate-500 text-xs">Carregando dados.txt...</div>
+                <div class="text-center py-8 text-slate-500 text-xs">Digite um termo acima para buscar tutoriais.</div>
             </div>
         </section>
     </main>
 
-    <!-- SCRIPT DE CARREGAMENTO DO TXT E FILTRAGEM -->
+    <!-- SCRIPT DA API DO YOUTUBE -->
     <script>
-        let rawDataList = [];
+        // Chave da YouTube Data API v3 inserida
+        const YOUTUBE_API_KEY = 'AIzaSyCfGF8gIB2YfbdauGY-CwC8cFMaIZOcuHw';
 
-        async function loadData() {
-            try {
-                let response = await fetch('dados.txt');
-                let text = await response.text();
-                parseData(text);
-            } catch (error) {
-                console.error("Erro ao carregar dados.txt:", error);
-                document.getElementById('itemsContainer').innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao carregar o arquivo dados.txt. Certifique-se de que ele está na mesma pasta.</div>`;
+        let currentResults = [];
+
+        function handleSearch(event) {
+            event.preventDefault();
+            let query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                searchYouTube(`${query} marcenaria gabarito`);
             }
         }
 
-        function parseData(text) {
-            let lines = text.split('\n');
-            rawDataList = [];
+        async function searchYouTube(query) {
+            let container = document.getElementById('itemsContainer');
 
-            lines.forEach((line, index) => {
-                if (line.trim() === '') return;
-                let parts = line.split('|');
-                if (parts.length >= 5) {
-                    rawDataList.push({
-                        id: index,
-                        title: parts[0].trim(),
-                        url: parts[1].trim(),
-                        success: parseInt(parts[2].trim()),
-                        status: parts[3].trim(),
-                        category: parts[4].trim()
-                    });
+            container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Buscando vídeos no YouTube...</div>`;
+
+            try {
+                let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`;
+                let searchResponse = await fetch(searchUrl);
+                let searchData = await searchResponse.json();
+
+                if (!searchData.items || searchData.items.length === 0) {
+                    container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Nenhum vídeo encontrado.</div>`;
+                    updateMetrics([]);
+                    return;
                 }
-            });
 
-            renderItems(rawDataList);
-            updateMetrics(rawDataList);
-        }
+                let videoIds = searchData.items.map(item => item.id.videoId).join(',');
 
-        function extractYouTubeId(url) {
-            let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            let match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
+                let detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+                let detailsResponse = await fetch(detailsUrl);
+                let detailsData = await detailsResponse.json();
 
-        function filterItems() {
-            let query = document.getElementById('searchInput').value.toLowerCase();
-            let filtered = rawDataList.filter(item => 
-                item.title.toLowerCase().includes(query) || 
-                item.category.toLowerCase().includes(query)
-            );
-            renderItems(filtered);
+                currentResults = detailsData.items.map(item => {
+                    let likes = parseInt(item.statistics.likeCount || 0);
+                    let views = parseInt(item.statistics.viewCount || 1);
+                    
+                    let ratio = (likes / views) * 100;
+                    let calculatedSuccess = Math.min(Math.max(Math.round(80 + (ratio * 3)), 70), 99);
+
+                    return {
+                        id: item.id,
+                        title: item.snippet.title,
+                        channel: item.snippet.channelTitle,
+                        success: calculatedSuccess,
+                        url: `https://www.youtube.com/watch?v=${item.id}`
+                    };
+                });
+
+                renderItems(currentResults);
+                updateMetrics(currentResults);
+
+            } catch (error) {
+                console.error("Erro na API do YouTube:", error);
+                container.innerHTML = `<div class="text-center py-8 text-red-400 text-xs">Erro ao consultar a API do YouTube. Verifique se a cota diária foi atingida.</div>`;
+            }
         }
 
         function renderItems(items) {
             let container = document.getElementById('itemsContainer');
             container.innerHTML = '';
 
-            if (items.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Nenhum resultado encontrado para sua busca.</div>`;
-                return;
-            }
-
             items.forEach(item => {
-                let videoId = extractYouTubeId(item.url);
                 let successColor = item.success >= 90 ? 'text-emerald-400 bg-emerald-950/60' : item.success >= 80 ? 'text-blue-400 bg-blue-950/60' : 'text-amber-400 bg-amber-950/60';
                 
                 let card = document.createElement('div');
@@ -112,15 +120,14 @@
                 card.innerHTML = `
                     <div class="flex justify-between items-start gap-2">
                         <div>
-                            <span class="text-[9px] text-amber-400 uppercase font-bold tracking-wider">${item.category}</span>
-                            <h3 class="font-bold text-xs text-white mt-0.5">${item.title}</h3>
+                            <span class="text-[9px] text-amber-400 uppercase font-bold tracking-wider"><i class="fa-solid fa-user-gear mr-1"></i>${item.channel}</span>
+                            <h3 class="font-bold text-xs text-white mt-0.5 line-clamp-2">${item.title}</h3>
                         </div>
                         <span class="${successColor} px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: ${item.success}%</span>
                     </div>
-                    ${videoId ? `
                     <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700">
-                        <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>` : '<p class="text-red-400 text-[10px]">Link inválido</p>'}
+                        <iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${item.id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
                 `;
                 container.appendChild(card);
             });
@@ -136,7 +143,7 @@
             document.getElementById('avgSuccess').innerText = avg + '%';
         }
 
-        loadData();
+        searchYouTube('gabarito marcenaria simples');
     </script>
 </body>
 </html>
