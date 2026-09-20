@@ -60,7 +60,7 @@
             </h2>
             <div id="socialContainer" class="space-y-4">
                 
-                <!-- CARD DO REEL 90° (INSTAGRAM) -->
+                <!-- CARD DO REEL 90° (INSTAGRAM PADRÃO) -->
                 <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2" data-success="95">
                     <div class="flex justify-between items-start gap-2">
                         <div>
@@ -83,7 +83,7 @@
                     </div>
                 </div>
 
-                <!-- CARD DO TIKTOK LITE -->
+                <!-- CARD DO TIKTOK LITE (PADRÃO) -->
                 <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2" data-success="92">
                     <div class="flex justify-between items-start gap-2">
                         <div>
@@ -133,6 +133,29 @@
         const YOUTUBE_API_KEY = 'AIzaSyCfGF8gIB2YfbdauGY-CwC8cFMaIZOcuHw';
 
         let currentResults = [];
+        let savedSocialItems = [];
+
+        // Carrega dados do LocalStorage ao iniciar a aplicação
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedSocialItems();
+        });
+
+        function loadSavedSocialItems() {
+            const stored = localStorage.getItem('socialJigs');
+            if (stored) {
+                try {
+                    savedSocialItems = JSON.parse(stored);
+                    savedSocialItems.forEach(item => renderSocialCard(item, false));
+                    processEmbeds();
+                } catch (e) {
+                    console.error('Erro ao ler LocalStorage:', e);
+                }
+            }
+        }
+
+        function saveSocialItems() {
+            localStorage.setItem('socialJigs', JSON.stringify(savedSocialItems));
+        }
 
         function handleAddSocialLink(event) {
             event.preventDefault();
@@ -151,64 +174,93 @@
                 return;
             }
 
-            const container = document.getElementById('socialContainer');
-            const card = document.createElement('div');
-            card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2';
-            card.setAttribute('data-success', '90');
+            const itemData = {
+                id: 'social_' + Date.now(),
+                url: url,
+                title: title,
+                type: isInstagram ? 'instagram' : 'tiktok',
+                success: 90
+            };
 
-            if (isInstagram) {
-                card.innerHTML = `
-                    <div class="flex justify-between items-start gap-2">
-                        <div>
-                            <span class="text-[9px] text-pink-400 uppercase font-bold tracking-wider">
-                                <i class="fa-brands fa-instagram mr-1"></i>Instagram Reel
-                            </span>
-                            <h3 class="font-bold text-xs text-white mt-0.5">${title}</h3>
-                        </div>
-                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 90%</span>
-                    </div>
-                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
-                        <blockquote 
-                            class="instagram-media" 
-                            data-instgrm-permalink="${url}" 
-                            data-instgrm-version="14"
-                            style="background:#000; border:0; margin: 1px; max-width:540px; width:calc(100% - 2px);">
-                        </blockquote>
-                    </div>
-                `;
-            } else if (isTikTok) {
-                card.innerHTML = `
-                    <div class="flex justify-between items-start gap-2">
-                        <div>
-                            <span class="text-[9px] text-cyan-400 uppercase font-bold tracking-wider">
-                                <i class="fa-brands fa-tiktok mr-1"></i>TikTok
-                            </span>
-                            <h3 class="font-bold text-xs text-white mt-0.5">${title}</h3>
-                        </div>
-                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 90%</span>
-                    </div>
-                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
-                        <blockquote 
-                            class="tiktok-embed" 
-                            cite="${url}" 
-                            style="max-width: 605px;min-width: 325px;">
-                            <section>
-                                <a target="_blank" title="TikTok" href="${url}">Ver no TikTok <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
-                            </section>
-                        </blockquote>
-                    </div>
-                `;
-            }
+            savedSocialItems.unshift(itemData);
+            saveSocialItems();
 
-            container.prepend(card);
+            renderSocialCard(itemData, true);
 
-            // Re-executa scripts de renderização oficial do Instagram/TikTok se disponíveis
-            if (window.instgrm) window.instgrm.Embeds.process();
-            
             urlInput.value = '';
             titleInput.value = '';
 
             updateMetrics(currentResults);
+        }
+
+        function renderSocialCard(item, isNew = false) {
+            const container = document.getElementById('socialContainer');
+            const card = document.createElement('div');
+            card.id = item.id;
+            card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2 relative group';
+            card.setAttribute('data-success', item.success);
+
+            const isInstagram = item.type === 'instagram';
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start gap-2 pr-6">
+                    <div>
+                        <span class="text-[9px] ${isInstagram ? 'text-pink-400' : 'text-cyan-400'} uppercase font-bold tracking-wider">
+                            <i class="${isInstagram ? 'fa-brands fa-instagram' : 'fa-brands fa-tiktok'} mr-1"></i>${isInstagram ? 'Instagram Reel' : 'TikTok'}
+                        </span>
+                        <h3 class="font-bold text-xs text-white mt-0.5">${item.title}</h3>
+                    </div>
+                    <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: ${item.success}%</span>
+                </div>
+
+                <!-- BOTÃO PARA REMOVER O CARD -->
+                <button onclick="removeSocialCard('${item.id}')" title="Remover Vídeo" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-slate-900/80 border border-slate-700 hover:border-red-500 hover:bg-red-500/20 text-slate-400 hover:text-red-400 flex items-center justify-center text-xs transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
+                    ${isInstagram ? `
+                        <blockquote 
+                            class="instagram-media" 
+                            data-instgrm-permalink="${item.url}" 
+                            data-instgrm-version="14"
+                            style="background:#000; border:0; margin: 1px; max-width:540px; width:calc(100% - 2px);">
+                        </blockquote>
+                    ` : `
+                        <blockquote 
+                            class="tiktok-embed" 
+                            cite="${item.url}" 
+                            style="max-width: 605px;min-width: 325px;">
+                            <section>
+                                <a target="_blank" title="TikTok" href="${item.url}">Ver no TikTok <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+                            </section>
+                        </blockquote>
+                    `}
+                </div>
+            `;
+
+            container.prepend(card);
+
+            if (isNew) {
+                processEmbeds();
+            }
+        }
+
+        function removeSocialCard(id) {
+            savedSocialItems = savedSocialItems.filter(item => item.id !== id);
+            saveSocialItems();
+
+            const cardElement = document.getElementById(id);
+            if (cardElement) {
+                cardElement.remove();
+            }
+
+            updateMetrics(currentResults);
+        }
+
+        function processEmbeds() {
+            if (window.instgrm) window.instgrm.Embeds.process();
+            if (window.tiktok) window.tiktok.reload();
         }
 
         function handleSearch(event) {
@@ -291,7 +343,6 @@
         }
 
         function updateMetrics(items) {
-            // Coleta dynamicamente a pontuação de todos os cards de redes sociais presentes na tela
             let socialCards = document.querySelectorAll('#socialContainer [data-success]');
             let staticItemsSuccess = Array.from(socialCards).map(card => parseInt(card.getAttribute('data-success')) || 90);
             
