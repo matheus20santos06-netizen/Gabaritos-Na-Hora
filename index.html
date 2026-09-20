@@ -37,6 +37,22 @@
             </form>
         </section>
 
+        <!-- BOX DE INSERÇÃO MANUAL DE LINKS (INSTAGRAM / TIKTOK) -->
+        <section class="bg-slate-800 border border-amber-500/40 rounded-xl p-3 shadow-lg space-y-2">
+            <h2 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-plus-circle text-sm"></i> Adicionar Reel ou TikTok
+            </h2>
+            <form onsubmit="handleAddSocialLink(event)" class="space-y-2">
+                <input type="text" id="customTitle" placeholder="Título do vídeo / gabarito (opcional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                <div class="flex gap-2">
+                    <input type="url" id="socialUrlInput" required placeholder="Cole o link do Instagram ou TikTok..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <button type="submit" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-3 py-2 rounded-lg text-xs transition-colors shrink-0">
+                        Incorporar
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <!-- SEÇÃO: INSTAGRAM & TIKTOK (DESTAQUES EMBED) -->
         <section class="space-y-3">
             <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -45,7 +61,7 @@
             <div id="socialContainer" class="space-y-4">
                 
                 <!-- CARD DO REEL 90° (INSTAGRAM) -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2" data-success="95">
                     <div class="flex justify-between items-start gap-2">
                         <div>
                             <span class="text-[9px] text-pink-400 uppercase font-bold tracking-wider">
@@ -68,7 +84,7 @@
                 </div>
 
                 <!-- CARD DO TIKTOK LITE -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2" data-success="92">
                     <div class="flex justify-between items-start gap-2">
                         <div>
                             <span class="text-[9px] text-cyan-400 uppercase font-bold tracking-wider">
@@ -117,6 +133,83 @@
         const YOUTUBE_API_KEY = 'AIzaSyCfGF8gIB2YfbdauGY-CwC8cFMaIZOcuHw';
 
         let currentResults = [];
+
+        function handleAddSocialLink(event) {
+            event.preventDefault();
+            const urlInput = document.getElementById('socialUrlInput');
+            const titleInput = document.getElementById('customTitle');
+            const url = urlInput.value.trim();
+            const title = titleInput.value.trim() || 'Novo Gabarito / Dica Incorporada';
+
+            if (!url) return;
+
+            const isInstagram = url.includes('instagram.com');
+            const isTikTok = url.includes('tiktok.com');
+
+            if (!isInstagram && !isTikTok) {
+                alert('Insira um link válido do Instagram ou do TikTok.');
+                return;
+            }
+
+            const container = document.getElementById('socialContainer');
+            const card = document.createElement('div');
+            card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-3 shadow space-y-2';
+            card.setAttribute('data-success', '90');
+
+            if (isInstagram) {
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-pink-400 uppercase font-bold tracking-wider">
+                                <i class="fa-brands fa-instagram mr-1"></i>Instagram Reel
+                            </span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">${title}</h3>
+                        </div>
+                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 90%</span>
+                    </div>
+                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
+                        <blockquote 
+                            class="instagram-media" 
+                            data-instgrm-permalink="${url}" 
+                            data-instgrm-version="14"
+                            style="background:#000; border:0; margin: 1px; max-width:540px; width:calc(100% - 2px);">
+                        </blockquote>
+                    </div>
+                `;
+            } else if (isTikTok) {
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="text-[9px] text-cyan-400 uppercase font-bold tracking-wider">
+                                <i class="fa-brands fa-tiktok mr-1"></i>TikTok
+                            </span>
+                            <h3 class="font-bold text-xs text-white mt-0.5">${title}</h3>
+                        </div>
+                        <span class="text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded text-[10px] font-bold shrink-0">Chance: 90%</span>
+                    </div>
+                    <div class="w-full flex justify-center rounded-lg overflow-hidden border border-slate-700 bg-slate-900 py-2">
+                        <blockquote 
+                            class="tiktok-embed" 
+                            cite="${url}" 
+                            style="max-width: 605px;min-width: 325px;">
+                            <section>
+                                <a target="_blank" title="TikTok" href="${url}">Ver no TikTok <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+                            </section>
+                        </blockquote>
+                    </div>
+                `;
+            }
+
+            container.prepend(card);
+
+            // Re-executa scripts de renderização oficial do Instagram/TikTok se disponíveis
+            if (window.instgrm) window.instgrm.Embeds.process();
+            
+            urlInput.value = '';
+            titleInput.value = '';
+
+            updateMetrics(currentResults);
+        }
 
         function handleSearch(event) {
             event.preventDefault();
@@ -198,10 +291,14 @@
         }
 
         function updateMetrics(items) {
-            // Inclui as percentagens do Instagram (95%) e do TikTok (92%)
-            let staticItemsSuccess = [95, 92]; 
+            // Coleta dynamicamente a pontuação de todos os cards de redes sociais presentes na tela
+            let socialCards = document.querySelectorAll('#socialContainer [data-success]');
+            let staticItemsSuccess = Array.from(socialCards).map(card => parseInt(card.getAttribute('data-success')) || 90);
+            
             let allSuccesses = [...staticItemsSuccess, ...items.map(i => i.success)];
             
+            if (allSuccesses.length === 0) return;
+
             let sum = allSuccesses.reduce((acc, curr) => acc + curr, 0);
             let avg = Math.round(sum / allSuccesses.length);
             document.getElementById('avgSuccess').innerText = avg + '%';
